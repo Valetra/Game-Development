@@ -4,7 +4,6 @@
 #include <string> 
 #include <iostream>
 #define _USE_MATH_DEFINES
-#include <cmath>
 #include <math.h>
 
 using namespace sf;
@@ -12,13 +11,14 @@ using namespace std;
 
 using TypeOfDots = CircleShape;
 
-struct board
+struct Board
 {
 	string digit;
-	double x, y;
+	double x;
+	double y;
 };
 
-using TypeOfDigits = board;
+using TypeOfDigits = Board;
 using DigitCircles = CircleShape;
 
 struct MyClock
@@ -32,6 +32,13 @@ struct MyClock
 	Text text;
 	CircleShape clockCircle;
 	CircleShape centerCircle;
+	Music clockTick;
+	Texture clockImage;
+	Texture clockBrand;
+	Sprite clockBrandSprite;
+	RectangleShape hourHand;
+	RectangleShape minuteHand;
+	RectangleShape secondsHand;
 };
 
 static const int SCREEN_WIDTH = 800;
@@ -64,7 +71,7 @@ void SetHandsConfiguration(RectangleShape &hourHand, RectangleShape &minuteHand,
 	secondsHand.setPosition(windowCenter);
 }
 
-void Create—lockScheme(RenderWindow &window, CircleShape &clockCircle, CircleShape &centerCircle, Vector2f &windowCenter)
+void CreateClockScheme(RenderWindow &window, CircleShape &clockCircle, CircleShape &centerCircle, Vector2f &windowCenter)
 {
 	clockCircle.setPointCount(100);
 	clockCircle.setOutlineThickness(CLOCK_CIRCLE_THICKNESS);
@@ -82,7 +89,7 @@ void PlayClockSound(Music &clockTick)
 {
 	if (!clockTick.openFromFile("resources/clock-1.wav"))
 	{
-		cout << "Sound wasn`t found";
+		cout << "Sound wasn`t found\n";
 	}
 	else
 	{
@@ -95,7 +102,7 @@ void CreateLogo(Texture &clockBrand)
 {
 	if (!clockBrand.loadFromFile("resources/sfml-logo.png"))
 	{
-		cout << "Logo not found";
+		cout << "Logo not found\n";
 	}
 }
 
@@ -103,11 +110,11 @@ void CreateClockTexture(Sprite &clockBrandSprite, Texture &clockBrand, RenderWin
 {
 	clockBrandSprite.setTexture(clockBrand);
 	clockBrandSprite.setOrigin(clockBrandSprite.getTextureRect().left + clockBrandSprite.getTextureRect().width / 2 - 30,
-	clockBrandSprite.getTextureRect().top + clockBrandSprite.getTextureRect().height / 2 + 70);
+		clockBrandSprite.getTextureRect().top + clockBrandSprite.getTextureRect().height / 2 + 70);
 	clockBrandSprite.setPosition(window.getSize().x / 2.0f, window.getSize().y - 100.0f);
 }
 
-void CreateCheme(TypeOfDots *dot, TypeOfDigits *digits, RenderWindow &window, float angle, float x, float y)
+void CreateScheme(TypeOfDots *dot, TypeOfDigits *digits, RenderWindow &window, float angle)
 {
 	for (int i = 0; i < 12; i++)
 	{
@@ -117,8 +124,8 @@ void CreateCheme(TypeOfDots *dot, TypeOfDigits *digits, RenderWindow &window, fl
 	int j = 2;
 	for (int i = 0; i < 60; i++)
 	{
-		x = (CLOCK_CIRCLE_RADIUS - 10) * cos(angle);
-		y = (CLOCK_CIRCLE_RADIUS - 10) * sin(angle);
+		int x = (CLOCK_CIRCLE_RADIUS - 10) * cos(angle);
+		int y = (CLOCK_CIRCLE_RADIUS - 10) * sin(angle);
 
 		if (i % 5 == 0)
 		{
@@ -146,7 +153,7 @@ void CreateClockBackground(Texture &clockImage, CircleShape &clockCircle)
 {
 	if (!clockImage.loadFromFile("resources/clock-brand.jpg"))
 	{
-		cout << "BackGround wasn`t found";
+		cout << "BackGround wasn`t found\n";
 	}
 	else
 	{
@@ -168,7 +175,7 @@ void SetDigitsOptions(Text &text, Font &font)
 {
 	if (!font.loadFromFile("resources/CyrilicOld.ttf"))
 	{
-		cout << "Fonts wasn`t load";
+		cout << "Fonts wasn`t load\n";
 	}
 	text.setFont(font);
 	text.setColor(Color::Black);
@@ -206,54 +213,54 @@ void SetHandsOfTime(RectangleShape &hourHand, RectangleShape &minuteHand, Rectan
 	secondsHand.setRotation(ptm->tm_sec * 6);
 }
 
-void ProccesClock(MyClock watch, Sprite &clockBrandSprite, RenderWindow &window, RectangleShape &hourHand, RectangleShape &minuteHand, RectangleShape &secondsHand)
+void ClockWork(MyClock &watch, RenderWindow &window)
 {
 	while (window.isOpen())
 	{
 		Event event;
 		ProcessEvent(event, window);
 		window.clear(Color::White);
-		SetHandsOfTime(hourHand, minuteHand, secondsHand);
-		DrawObjects(watch, window, hourHand, minuteHand, secondsHand, clockBrandSprite);
+		SetHandsOfTime(watch.hourHand, watch.minuteHand, watch.secondsHand);
+		DrawObjects(watch, window, watch.hourHand, watch.minuteHand, watch.secondsHand, watch.clockBrandSprite);
 		window.display();
 	}
 }
 
+void InitSizeOfHands(MyClock &watch)
+{
+	watch.hourHand.setSize(Vector2f(5, 180));
+	watch.minuteHand.setSize(Vector2f(3, 240));
+	watch.secondsHand.setSize(Vector2f(2, 250));
+}
+
+void InitClock(MyClock &watch, RenderWindow &window, Vector2f &windowCenter)
+{
+	InitSizeOfHands(watch);
+	watch.clockCircle.setRadius(CLOCK_CIRCLE_RADIUS);
+	watch.centerCircle.setRadius(10);
+	SetDigitsOptions(watch.text, watch.font);
+	CreateScheme(watch.dot, watch.digits, window, watch.angle);
+	CreateClockScheme(window, watch.clockCircle, watch.centerCircle, windowCenter);
+	SetHandsConfiguration(watch.hourHand, watch.minuteHand, watch.secondsHand, windowCenter);
+	PlayClockSound(watch.clockTick);
+	CreateLogo(watch.clockBrand);
+	CreateClockTexture(watch.clockBrandSprite, watch.clockBrand, window);
+	CreateClockBackground(watch.clockImage, watch.clockCircle);
+}
+
 int main()
-{	
+{
 	ContextSettings settings;
 	InitSettings(settings);
 	Vector2f windowCenter;
 	RenderWindow window(VideoMode(SCREEN_WIDTH, SCREEN_HEIGHT), "SFML Analog Clock", Style::Close, settings);
+
 	InitWindowCenter(windowCenter, window);
-	
+
 	MyClock watch;
-	watch.clockCircle.setRadius(CLOCK_CIRCLE_RADIUS);
-	watch.centerCircle.setRadius(10);
 
-	SetDigitsOptions(watch.text, watch.font);
-	
-	CreateCheme(watch.dot, watch.digits, window, watch.angle, watch.x, watch.y);
-	
-	Create—lockScheme(window, watch.clockCircle, watch.centerCircle, windowCenter);
+	InitClock(watch, window, windowCenter);
+	ClockWork(watch, window);
 
-	RectangleShape hourHand(Vector2f(5, 180));
-	RectangleShape minuteHand(Vector2f(3, 240));
-	RectangleShape secondsHand(Vector2f(2, 250));
-	SetHandsConfiguration(hourHand, minuteHand, secondsHand, windowCenter);
-
-	Music clockTick;
-	PlayClockSound(clockTick);
-
-	Texture clockBrand;
-	CreateLogo(clockBrand);
-
-	Sprite clockBrandSprite;
-	CreateClockTexture(clockBrandSprite, clockBrand, window);
-
-	Texture clockImage;
-	CreateClockBackground(clockImage, watch.clockCircle);
-
-	ProccesClock(watch,clockBrandSprite, window, hourHand, minuteHand, secondsHand);
 	return EXIT_SUCCESS;
 }
