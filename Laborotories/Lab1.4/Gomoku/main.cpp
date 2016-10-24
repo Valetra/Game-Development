@@ -288,7 +288,7 @@ int main()
 
 	if (UserRequest(cell, object) == EXIT_FAILURE)
 	{
-		return EXIT_SUCCESS;
+		return EXIT_FAILURE;
 	}
 	
 	InitSettings(settings);
