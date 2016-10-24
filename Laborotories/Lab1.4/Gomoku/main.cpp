@@ -1,133 +1,300 @@
-//TODO: Процесс обработки зависимости размера поля от кол-ва клеток и т.п..
+/*Р¦РІРµС‚Р° Рё СЂР°Р·РјРµСЂС‹ РІР·СЏС‚С‹ СЃ СЃР°Р№С‚Р°: http://www.artemlopatin.ru/gomoku/
+
+ TODO:
+	1) РЎРѕР·РґР°С‚СЊ С„СѓРЅРєС†РёСЋ "РёСЃС‡РµР·РЅРѕРІРµРЅРёСЏ" 5-С‚Рё РѕРґРёРЅР°РєРѕРІС‹С… С„РёРіСѓСЂ РІ СЂСЏРґСѓ
+	2) РќР°С‡Р°С‚СЊ РїРёСЃР°С‚СЊ AI
+	3) РџРµСЂРµРЅРµСЃС‚Рё Рё РјРѕРґРµСЂРЅРёР·РёСЂРѕРІР°С‚СЊ РёРЅС‚РµСЂС„РµР№СЃ РІ РёРіСЂРѕРІРѕРµ РѕРєРЅРѕ
+*/
 
 #include <SFML/Window.hpp>
 #include <SFML/Graphics.hpp>
 #include <iostream>
+#include <vector>
 
 using namespace sf;
 using namespace std;
 
-static const unsigned DISTANCE_BETWEEN_LINES = 40;
-static const unsigned LINES_COUNT = 28;
-static const float FIELD_SIDE = 600;
-static const unsigned THICKNESS_OF_LATTICE = 2;
-static const unsigned DEFAULT_CELLS_COUNT = 5;
+static const unsigned WINDOW_WIDTH = 1366;
+static const unsigned WINDOW_HEIGHT = 768;
+
+static const int MIN_SIDE_CELL_COUNT = 5;
+static const int MAX_SIDE_CELL_COUNT = 15;
+
+static const float DISTANCE_BETWEEN_LINES = 40;
+static const float THICKNESS_OF_LATTICE = 2;
+
+static const float OFFSET_AXIS = 10;
+static const float SQUARE_SIDE = 20;
+static const float CIRCLE_OUTLINE_SIZE = 5;
+static const float CIRCLE_RADIUS = 10;
 
 static const Color COLOR_OF_FIELD(236, 234, 190);
 static const Color COLOR_OF_LINES(192, 192, 192);
+static const Color BACK_GROUND_COLOR(245, 245, 220);
+static const Color COLOR_OF_CROSS(193, 135, 107);
+static const Color COLOR_OF_CIRCLE(190, 189, 127);
 
-struct Objects
+static const int CELL_STATUS_SQUARE = 1;
+static const int CELL_STATUS_CIRCLE = 0;
+static const int CELL_STATUS_EMPTY = -1;
+
+struct Point
 {
-	//Поле
-	RectangleShape field;
-	//Клетки
-	RectangleShape lines[DEFAULT_CELLS_COUNT];
+	float x;
+	float y;
 };
 
-void ProcessEvent(Event &event, RenderWindow &window)
+struct Cell
+{
+	int status;
+	
+	Point cellPosition;
+
+	vector<RectangleShape> squears;
+	vector<CircleShape> circles;
+};
+
+struct Object
+{
+	unsigned shape;
+	//РџРѕР»Рµ
+	RectangleShape fieldBoarder;
+	float fieldSide;
+	vector<vector<Cell>> field;
+	float fieldPosX;
+	float fieldPosY;
+	//Р›РёРЅРёРё
+	vector<RectangleShape> lines;
+	unsigned short int linesCount;
+	//РљР»РµС‚РєРё
+	unsigned short int sideCellCount;
+	//РљРІР°РґСЂР°С‚РёРє
+	RectangleShape square;
+	//РќСѓР»РёРє
+	CircleShape circle;
+};
+
+void InitSettings(ContextSettings &settings)
+{
+	settings.antialiasingLevel = 8;
+}
+
+void CreateSquare(Object &object, Cell &cell, const float &cellPositionX, const float &cellPositionY)
+{
+	object.square.setFillColor(COLOR_OF_CROSS);
+	object.square.setSize(Vector2f(SQUARE_SIDE, SQUARE_SIDE));
+	object.square.setPosition(Vector2f(cellPositionX + OFFSET_AXIS, cellPositionY + OFFSET_AXIS));
+	cell.squears.push_back(object.square);
+}
+
+void CreateCircle(Object &object, Cell &cell, const float &cellPositionX, const float &cellPositionY)
+{
+	object.circle.setFillColor(COLOR_OF_FIELD);
+	object.circle.setOutlineColor(COLOR_OF_CIRCLE);
+	object.circle.setOutlineThickness(CIRCLE_OUTLINE_SIZE);
+	object.circle.setPosition(Vector2f(cellPositionX + OFFSET_AXIS, cellPositionY + OFFSET_AXIS));
+	object.circle.setRadius(CIRCLE_RADIUS);
+	cell.circles.push_back(object.circle);
+}
+
+void ProcessClickPosition(Object &object, Cell &cell, const int &clickPositionX, const int &clickPositionY)
+{
+	for (size_t i = 0; i < object.sideCellCount; ++i)
+	{
+		for (size_t j = 0; j < object.sideCellCount; ++j)
+		{
+			if ((clickPositionX >= object.field.at(i).at(j).cellPosition.x && clickPositionX < (object.field.at(i).at(j).cellPosition.x + DISTANCE_BETWEEN_LINES))&&
+				(clickPositionY >= object.field.at(i).at(j).cellPosition.y && clickPositionY < (object.field.at(i).at(j).cellPosition.y + DISTANCE_BETWEEN_LINES)))
+			{
+				//РЎРјРµРЅР° СЃС‚Р°С‚СѓСЃР°
+				if (object.field.at(i).at(j).status == CELL_STATUS_EMPTY)
+				{
+					if (object.shape == CELL_STATUS_SQUARE)
+					{
+						object.field.at(i).at(j).status = CELL_STATUS_SQUARE;
+						CreateSquare(object, cell, object.field.at(i).at(j).cellPosition.x, object.field.at(i).at(j).cellPosition.y);
+					}
+					if (object.shape == CELL_STATUS_CIRCLE)
+					{
+						object.field.at(i).at(j).status = CELL_STATUS_CIRCLE;
+						CreateCircle(object, cell, object.field.at(i).at(j).cellPosition.x, object.field.at(i).at(j).cellPosition.y);
+					}
+				}
+			}
+		}
+	}
+}
+
+void ProcessEvent(Object &object, Cell &cell, Event &event, RenderWindow &window)
 {
 	while (window.pollEvent(event))
 	{
 		if (event.type == Event::Closed)
+		{
 			window.close();
+		}
+		if (event.type == Event::MouseButtonPressed)
+		{
+			ProcessClickPosition(object, cell, event.mouseButton.x, event.mouseButton.y);
+		}
 	}
 }
 
-void CreateGameField(Objects &object, RenderWindow &window, float fieldPosX, float fieldPosY)
+void CreateFieldBoarder(Object &object, RenderWindow &window)
 {
-	object.field.setSize(Vector2f(FIELD_SIDE, FIELD_SIDE));
+	object.fieldBoarder.setSize(Vector2f(object.fieldSide, object.fieldSide));
 
-	Vector2f fieldPos(fieldPosX, fieldPosY);
-	object.field.setPosition(fieldPos);
+	Vector2f fieldPos(object.fieldPosX, object.fieldPosY);
+	object.fieldBoarder.setPosition(fieldPos);
 
-	object.field.setFillColor(COLOR_OF_FIELD);
-	object.field.setOutlineColor(COLOR_OF_LINES);
-	object.field.setOutlineThickness(THICKNESS_OF_LATTICE);
+	object.fieldBoarder.setFillColor(COLOR_OF_FIELD);
+	object.fieldBoarder.setOutlineColor(COLOR_OF_LINES);
+	object.fieldBoarder.setOutlineThickness(THICKNESS_OF_LATTICE);
 }
 
-void CreateGameCells(Objects &object, float fieldPosX, float fieldPosY)
+void CreateGameCells(Object &object)
 {
-	for (int i = 0, j = 0; i < LINES_COUNT; ++i)
+	for (size_t i = 0, j = 0; i < object.lines.size(); ++i)
 	{
-
-		object.lines[i].setFillColor(COLOR_OF_LINES);
-		if (i < 14)
+		object.lines.at(i).setFillColor(COLOR_OF_LINES);
+		if (i < object.lines.size() / 2)
 		{
-			object.lines[i].setSize(Vector2f(THICKNESS_OF_LATTICE, FIELD_SIDE));
-			object.lines[i].setPosition(fieldPosX + DISTANCE_BETWEEN_LINES * (i + 1), fieldPosY);
+			object.lines.at(i).setSize(Vector2f(THICKNESS_OF_LATTICE, object.fieldSide));
+			object.lines.at(i).setPosition(object.fieldPosX + DISTANCE_BETWEEN_LINES * (i + 1), object.fieldPosY);
 		}
 		else
 		{
-			object.lines[i].setSize(Vector2f(FIELD_SIDE, THICKNESS_OF_LATTICE));
-			object.lines[i].setPosition(fieldPosX, fieldPosY + DISTANCE_BETWEEN_LINES * (j + 1));
+			object.lines.at(i).setSize(Vector2f(object.fieldSide, THICKNESS_OF_LATTICE));
+			object.lines.at(i).setPosition(object.fieldPosX, object.fieldPosY + DISTANCE_BETWEEN_LINES * (j + 1));
 			++j;
 		}
 	}
 }
 
-void CreateGameTable(Objects &object, RenderWindow &window)
+void InitCell(Object &object, Cell &cage, const  size_t &i, const  size_t &j)
 {
-	Vector2u size = window.getSize();
-	float fieldPosX = size.x / 2 - FIELD_SIDE / 2;
-	float fieldPosY = size.y / 2 - FIELD_SIDE / 2;
-
-	CreateGameField(object, window, fieldPosX, fieldPosY);
-	CreateGameCells(object, fieldPosX, fieldPosY);
+	cage.cellPosition.x = object.fieldPosX + j * DISTANCE_BETWEEN_LINES;
+	cage.cellPosition.y = object.fieldPosY + i * DISTANCE_BETWEEN_LINES;
+	cage.status = CELL_STATUS_EMPTY;
 }
 
-void DrawField(RenderWindow &window, Objects &objects)
-{
-	window.draw(objects.field);
-}
 
-void DrawCells(RenderWindow &window, Objects &objects)
+void InitField(Cell &cell, Object &object)
 {
-	for (size_t i = 0; i < LINES_COUNT; ++i)
+	object.field.resize(object.sideCellCount);
+
+	for (size_t i = 0; i < object.sideCellCount; ++i)
 	{
-		window.draw(objects.lines[i]);
+		for (size_t j = 0; j < object.sideCellCount; ++j)
+		{
+			Cell cage;
+			InitCell(object, cage, i, j);
+			object.field.at(i).push_back(cage);
+		}
 	}
 }
 
-void DrawObjects(RenderWindow &window, Objects &objects)
+void CreateGameField(Object &object, RenderWindow &window, Cell &cell)
 {
-	DrawField(window, objects);
-	DrawCells(window, objects);
+	Vector2u size = window.getSize();
+	object.fieldPosX = size.x / 2 - object.fieldSide / 2;
+	object.fieldPosY = size.y / 2 - object.fieldSide / 2;
+
+	InitField(cell, object);
+
+	CreateFieldBoarder(object, window);
+	CreateGameCells(object);
+}
+
+void DrawCircle(RenderWindow &window, Cell &cell)
+{
+	for (size_t i = 0; i < cell.circles.size(); ++i)
+	{
+		window.draw(cell.circles.at(i));
+	}
+}
+
+void DrawSquare(RenderWindow &window, Cell &cell)
+{
+	for (size_t i = 0; i < cell.squears.size(); ++i)
+	{
+		window.draw(cell.squears.at(i));
+	}	
+}
+
+void DrawField(RenderWindow &window, Object &object)
+{
+	window.draw(object.fieldBoarder);
+}
+
+void DrawCells(RenderWindow &window, Object &object)
+{
+	for (size_t i = 0; i < object.lines.size(); ++i)
+	{
+		window.draw(object.lines.at(i));
+	}
+}
+
+void DrawObjects(RenderWindow &window, Object &object, Cell &cell)
+{
+	DrawField(window, object);
+	DrawCells(window, object);
+	DrawSquare(window, cell);
+	DrawCircle(window, cell);
+}
+
+int UserRequest(Cell &cell, Object &object)
+{
+	cout << "Р’РІРµРґРёС‚Рµ СЂР°Р·РјРµСЂ РїРѕР»СЏ РѕС‚ 5 РґРѕ 15 РІРєР»СЋС‡РёС‚РµР»СЊРЅРѕ\n";
+	cin >> object.sideCellCount;
+	if (object.sideCellCount < MIN_SIDE_CELL_COUNT || object.sideCellCount > MAX_SIDE_CELL_COUNT)
+	{
+		cout << "РџР»РѕС…РёС€!\n";
+		return EXIT_FAILURE;
+	}
+	cout << "Р’С‹Р±РµСЂРёС‚Рµ С„РёРіСѓСЂСѓ РєРІР°РґСЂР°С‚ РёР»Рё РЅРѕР»РёРє (1 - РєРІР°РґСЂР°С‚ || 0 - РЅРѕР»РёРє )\n";
+	cin >> object.shape;
+	return EXIT_SUCCESS;
+}
+
+
+
+void SetField(Object &object, Cell &cell, RenderWindow &window)
+{
+	object.fieldSide = object.sideCellCount * DISTANCE_BETWEEN_LINES;
+	object.linesCount = (object.sideCellCount - 1) * 2;
+	object.lines.resize(object.linesCount);
+	CreateGameField(object, window, cell);
+}
+
+void GameLoop(RenderWindow &window, Object &object, Cell &cell)
+{
+	while (window.isOpen())
+	{
+		Event event;
+		ProcessEvent(object, cell, event, window);
+		window.clear(BACK_GROUND_COLOR);
+		DrawObjects(window, object, cell);
+		window.display();
+	}
 }
 
 int main()
 {
-	unsigned cellSideCount;
-	cout << "Введите размер поля от 5 до 15 включительно\n";
-	cin >> cellSideCount;
-	if (cellSideCount < 5 && cellSideCount > 15)
-	{
-		cout << "Плохиш!\n";
-		return 1;
-	}
-	unsigned linesCount = (cellSideCount - 1) * 2;
+	setlocale(LC_ALL, "rus");
+	Object object;
+	Cell cell;
+	ContextSettings settings;
 
-	RenderWindow window(VideoMode(1024, 768), "Gomoku", Style::Fullscreen);
-	Color backGroundColor(245, 245, 220);
-	Objects objects;
+	if (UserRequest(cell, object) == EXIT_FAILURE)
+	{
+		return EXIT_SUCCESS;
+	}
 	
+	InitSettings(settings);
+	RenderWindow window(VideoMode(WINDOW_WIDTH, WINDOW_HEIGHT), "Gomoku", Style::Fullscreen, settings);
+	SetField(object, cell, window);
 
-
-	//Game Loop
-	while (window.isOpen())
-	{
-		Event event;
-		//Обработка событий
-		ProcessEvent(event, window);
-		
-		//Очистка экрана
-		window.clear(backGroundColor);
-
-		//Установка поля
-		CreateGameTable(objects, window);
-		//Установка крестиков ноликов в положения
-		//Отрисовка изображения
-		DrawObjects(window, objects);
-		window.display();
-	}
-	return 0;
+	GameLoop(window, object, cell);
+	return EXIT_SUCCESS;
 }
