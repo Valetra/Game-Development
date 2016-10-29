@@ -1,131 +1,217 @@
-/*Р¦РІРµС‚Р° Рё СЂР°Р·РјРµСЂС‹ РІР·СЏС‚С‹ СЃ СЃР°Р№С‚Р°: http://www.artemlopatin.ru/gomoku/
+/*Цвета и размеры взяты с сайта: http://www.artemlopatin.ru/gomoku/
 
  TODO:
-	1) РЎРѕР·РґР°С‚СЊ С„СѓРЅРєС†РёСЋ "РёСЃС‡РµР·РЅРѕРІРµРЅРёСЏ" 5-С‚Рё РѕРґРёРЅР°РєРѕРІС‹С… С„РёРіСѓСЂ РІ СЂСЏРґСѓ
-	2) РќР°С‡Р°С‚СЊ РїРёСЃР°С‚СЊ AI
-	3) РџРµСЂРµРЅРµСЃС‚Рё Рё РјРѕРґРµСЂРЅРёР·РёСЂРѕРІР°С‚СЊ РёРЅС‚РµСЂС„РµР№СЃ РІ РёРіСЂРѕРІРѕРµ РѕРєРЅРѕ
+	1) Создать функцию "исчезновения" 5-ти одинаковых фигур в ряду
+	2) Начать писать AI
+	3) Перенести интерфейс в игровое окно и модернизировать его 
 */
+#include "stdafx.h"
+#include "constants.h"
+#include "init.h"
 
-#include <SFML/Window.hpp>
-#include <SFML/Graphics.hpp>
-#include <iostream>
-#include <vector>
 
-using namespace sf;
-using namespace std;
 
-static const unsigned WINDOW_WIDTH = 1366;
-static const unsigned WINDOW_HEIGHT = 768;
-
-static const int MIN_SIDE_CELL_COUNT = 5;
-static const int MAX_SIDE_CELL_COUNT = 15;
-
-static const float DISTANCE_BETWEEN_LINES = 40;
-static const float THICKNESS_OF_LATTICE = 2;
-
-static const float OFFSET_AXIS = 10;
-static const float SQUARE_SIDE = 20;
-static const float CIRCLE_OUTLINE_SIZE = 5;
-static const float CIRCLE_RADIUS = 10;
-
-static const Color COLOR_OF_FIELD(236, 234, 190);
-static const Color COLOR_OF_LINES(192, 192, 192);
-static const Color BACK_GROUND_COLOR(245, 245, 220);
-static const Color COLOR_OF_CROSS(193, 135, 107);
-static const Color COLOR_OF_CIRCLE(190, 189, 127);
-
-static const int CELL_STATUS_SQUARE = 1;
-static const int CELL_STATUS_CIRCLE = 0;
-static const int CELL_STATUS_EMPTY = -1;
-
-struct Point
+void CrossOutCells(GameObject &object, GameCell &cell, size_t i, size_t j, const float &cellPositionX, const float &cellPositionY)
 {
-	float x;
-	float y;
-};
-
-struct Cell
-{
-	int status;
-	
-	Point cellPosition;
-
-	vector<RectangleShape> squears;
-	vector<CircleShape> circles;
-};
-
-struct Object
-{
-	unsigned shape;
-	//РџРѕР»Рµ
-	RectangleShape fieldBoarder;
-	float fieldSide;
-	vector<vector<Cell>> field;
-	float fieldPosX;
-	float fieldPosY;
-	//Р›РёРЅРёРё
-	vector<RectangleShape> lines;
-	unsigned short int linesCount;
-	//РљР»РµС‚РєРё
-	unsigned short int sideCellCount;
-	//РљРІР°РґСЂР°С‚РёРє
-	RectangleShape square;
-	//РќСѓР»РёРє
-	CircleShape circle;
-};
-
-void InitSettings(ContextSettings &settings)
-{
-	settings.antialiasingLevel = 8;
+	cout << "Cross cells\n";
+	object.squarePrototype.setFillColor(COLOR_OF_GAMEOVER_LINE);
+	object.squarePrototype.setSize(Vector2f(DISTANCE_BETWEEN_LINES * 4.5, 5));
+	object.squarePrototype.setPosition(Vector2f(cellPositionX + OFFSET_AXIS + 3, cellPositionY + OFFSET_AXIS + 7));
+	cell.squears.push_back(object.squarePrototype);
 }
 
-void CreateSquare(Object &object, Cell &cell, const float &cellPositionX, const float &cellPositionY)
+void IsLineAtLeftDiagonal(GameObject &object, GameCell &cell, size_t i, size_t j)
 {
-	object.square.setFillColor(COLOR_OF_CROSS);
-	object.square.setSize(Vector2f(SQUARE_SIDE, SQUARE_SIDE));
-	object.square.setPosition(Vector2f(cellPositionX + OFFSET_AXIS, cellPositionY + OFFSET_AXIS));
-	cell.squears.push_back(object.square);
+	unsigned shapesAtLineCount = 1;
+
+	for (size_t iterator = 1; iterator <= j && iterator <= i; ++iterator)
+	{
+		if (object.margin.field.at(i - iterator).at(j - iterator).status == object.shape)
+		{
+			++shapesAtLineCount;
+		}
+		else
+		{
+			break;
+		}
+	}
+	for (size_t iterator = 1; iterator < object.margin.field.at(i).size() - i && iterator < object.margin.field.at(j).size() - j; ++iterator)
+	{
+		if (object.margin.field.at(i + iterator).at(j + iterator).status == object.shape)
+		{
+			++shapesAtLineCount;
+		}
+		else
+		{
+			break;
+		}
+	}
+	if (shapesAtLineCount >= 5)
+	{
+		//CrossOutCells(object, cell, i, j, object.margin.field.at(i).at(j).cellPosition.x, object.margin.field.at(i).at(j).cellPosition.y);
+		cout << "По левой диагонали набралось 5 фигур\n";
+	}
 }
 
-void CreateCircle(Object &object, Cell &cell, const float &cellPositionX, const float &cellPositionY)
+void IsLineAtRightDiagonal(GameObject &object, GameCell &cell, size_t i, size_t j)
 {
-	object.circle.setFillColor(COLOR_OF_FIELD);
-	object.circle.setOutlineColor(COLOR_OF_CIRCLE);
-	object.circle.setOutlineThickness(CIRCLE_OUTLINE_SIZE);
-	object.circle.setPosition(Vector2f(cellPositionX + OFFSET_AXIS, cellPositionY + OFFSET_AXIS));
-	object.circle.setRadius(CIRCLE_RADIUS);
-	cell.circles.push_back(object.circle);
+	unsigned shapesAtLineCount = 1;
+
+	for (size_t iterator = 1; iterator < object.margin.field.at(i).size() - j && iterator <= i; ++iterator)
+	{
+		if (object.margin.field.at(i - iterator).at(j + iterator).status == object.shape)
+		{
+			++shapesAtLineCount;
+		}
+		else
+		{
+			break;
+		}
+	}
+	for (size_t iterator = 1; iterator < object.margin.field.at(i).size() - i && iterator <= j; ++iterator)
+	{
+		if (object.margin.field.at(i + iterator).at(j - iterator).status == object.shape)
+		{
+			++shapesAtLineCount;
+		}
+		else
+		{
+			break;
+		}
+	}
+	if (shapesAtLineCount >= 5)
+	{
+		//CrossOutCells(object, cell, i, j, object.margin.field.at(i).at(j).cellPosition.x, object.margin.field.at(i).at(j).cellPosition.y);
+		cout << "По правой диагонали набралось 5 фигур\n";
+	}
 }
 
-void ProcessClickPosition(Object &object, Cell &cell, const int &clickPositionX, const int &clickPositionY)
+void IsLineAtGorizontal(GameObject &object, GameCell &cell, size_t i, size_t j)
+{
+	unsigned shapesAtLineCount = 1;
+
+	for (size_t iterator = 1; iterator < object.margin.field.at(i).size() - j; ++iterator)
+	{
+
+		if (object.margin.field.at(i).at(j + iterator).status == object.shape)//Справа
+		{
+			++shapesAtLineCount;
+		}
+		else
+		{
+			break;
+		}
+	}
+
+	for (size_t iterator = 1; iterator <= j; ++iterator)
+	{
+		if (object.margin.field.at(i).at(j - iterator).status == object.shape)//Слева
+		{
+			++shapesAtLineCount;
+		}
+		else
+		{
+			break;
+		}
+	}
+
+	if (shapesAtLineCount >= 5)
+	{
+		//CrossOutCells(object, cell, i, j, object.margin.field.at(i).at(j).cellPosition.x, object.margin.field.at(i).at(j).cellPosition.y);
+		cout << "По горизонтали набралось 5 фигур\n";
+	}
+}
+
+void IsLineAtVertical(GameObject &object, GameCell &cell, size_t i, size_t j)
+{
+	unsigned shapesAtLineCount = 1;
+	for (size_t iterator = 1; iterator < object.margin.field.size() - i; ++iterator)
+	{
+		if (object.margin.field.at(i + iterator).at(j).status == object.shape)//Снизу
+		{
+			++shapesAtLineCount;
+		}
+		else
+		{
+			break;
+		}
+	}
+	for (size_t iterator = 1; iterator <= i; ++iterator)
+	{
+		if (object.margin.field.at(i - iterator).at(j).status == object.shape)//Сверху
+		{
+			++shapesAtLineCount;
+		}
+		else
+		{
+			break;
+		}
+	}
+
+	if (shapesAtLineCount >= 5)
+	{
+		//CrossOutCells(object, cell, i, j, object.margin.field.at(i).at(j).cellPosition.x, object.margin.field.at(i).at(j).cellPosition.y);
+		cout << "По вертикали набралось 5 фигур\n";
+	}
+}
+
+void CheckLineOfShapes(GameObject &object, GameCell &cell, size_t i, size_t j)
+{
+	IsLineAtGorizontal(object, cell, i, j);
+	IsLineAtVertical(object, cell, i, j);
+	IsLineAtRightDiagonal(object, cell, i, j);
+	IsLineAtLeftDiagonal(object, cell, i, j);
+}
+
+void CreateSquare(GameObject &object, GameCell &cell, const float &cellPositionX, const float &cellPositionY)
+{
+	object.squarePrototype.setFillColor(COLOR_OF_SQUARE);
+	object.squarePrototype.setSize(Vector2f(SQUARE_SIDE, SQUARE_SIDE));
+	object.squarePrototype.setPosition(Vector2f(cellPositionX + OFFSET_AXIS, cellPositionY + OFFSET_AXIS));
+	cell.squears.push_back(object.squarePrototype);
+}
+
+void CreateCircle(GameObject &object, GameCell &cell, const float &cellPositionX, const float &cellPositionY)
+{
+	object.circlePrototype.setFillColor(COLOR_OF_FIELD);
+	object.circlePrototype.setOutlineColor(COLOR_OF_CIRCLE);
+	object.circlePrototype.setOutlineThickness(CIRCLE_OUTLINE_SIZE);
+	object.circlePrototype.setPosition(Vector2f(cellPositionX + OFFSET_AXIS, cellPositionY + OFFSET_AXIS));
+	object.circlePrototype.setRadius(CIRCLE_RADIUS);
+	cell.circles.push_back(object.circlePrototype);
+}
+
+void ProcessClick(GameObject &object, GameCell &cell, const int &clickPositionX, const int &clickPositionY)
 {
 	for (size_t i = 0; i < object.sideCellCount; ++i)
 	{
 		for (size_t j = 0; j < object.sideCellCount; ++j)
 		{
-			if ((clickPositionX >= object.field.at(i).at(j).cellPosition.x && clickPositionX < (object.field.at(i).at(j).cellPosition.x + DISTANCE_BETWEEN_LINES))&&
-				(clickPositionY >= object.field.at(i).at(j).cellPosition.y && clickPositionY < (object.field.at(i).at(j).cellPosition.y + DISTANCE_BETWEEN_LINES)))
+			if ((clickPositionX >= object.margin.field.at(i).at(j).cellPosition.x && clickPositionX < (object.margin.field.at(i).at(j).cellPosition.x + DISTANCE_BETWEEN_LINES))&&
+				(clickPositionY >= object.margin.field.at(i).at(j).cellPosition.y && clickPositionY < (object.margin.field.at(i).at(j).cellPosition.y + DISTANCE_BETWEEN_LINES)))
 			{
-				//РЎРјРµРЅР° СЃС‚Р°С‚СѓСЃР°
-				if (object.field.at(i).at(j).status == CELL_STATUS_EMPTY)
+				//Смена статуса нажатой клетки
+				if (object.margin.field.at(i).at(j).status == State::Empty)
 				{
-					if (object.shape == CELL_STATUS_SQUARE)
+					
+					if (object.shape == State::Square)
 					{
-						object.field.at(i).at(j).status = CELL_STATUS_SQUARE;
-						CreateSquare(object, cell, object.field.at(i).at(j).cellPosition.x, object.field.at(i).at(j).cellPosition.y);
+						object.margin.field.at(i).at(j).status = State::Square;
+						CreateSquare(object, cell, object.margin.field.at(i).at(j).cellPosition.x, object.margin.field.at(i).at(j).cellPosition.y);
 					}
-					if (object.shape == CELL_STATUS_CIRCLE)
+					if (object.shape == State::Circle)
 					{
-						object.field.at(i).at(j).status = CELL_STATUS_CIRCLE;
-						CreateCircle(object, cell, object.field.at(i).at(j).cellPosition.x, object.field.at(i).at(j).cellPosition.y);
+						object.margin.field.at(i).at(j).status = State::Circle;
+						CreateCircle(object, cell, object.margin.field.at(i).at(j).cellPosition.x, object.margin.field.at(i).at(j).cellPosition.y);
 					}
+					CheckLineOfShapes(object, cell, i, j);
 				}
 			}
 		}
 	}
 }
 
-void ProcessEvent(Object &object, Cell &cell, Event &event, RenderWindow &window)
+void ProcessEvent(GameObject &object, GameCell &cell, Event &event, RenderWindow &window)
 {
 	while (window.pollEvent(event))
 	{
@@ -135,78 +221,23 @@ void ProcessEvent(Object &object, Cell &cell, Event &event, RenderWindow &window
 		}
 		if (event.type == Event::MouseButtonPressed)
 		{
-			ProcessClickPosition(object, cell, event.mouseButton.x, event.mouseButton.y);
+			ProcessClick(object, cell, event.mouseButton.x, event.mouseButton.y);
 		}
 	}
 }
 
-void CreateFieldBoarder(Object &object, RenderWindow &window)
-{
-	object.fieldBoarder.setSize(Vector2f(object.fieldSide, object.fieldSide));
-
-	Vector2f fieldPos(object.fieldPosX, object.fieldPosY);
-	object.fieldBoarder.setPosition(fieldPos);
-
-	object.fieldBoarder.setFillColor(COLOR_OF_FIELD);
-	object.fieldBoarder.setOutlineColor(COLOR_OF_LINES);
-	object.fieldBoarder.setOutlineThickness(THICKNESS_OF_LATTICE);
-}
-
-void CreateGameCells(Object &object)
-{
-	for (size_t i = 0, j = 0; i < object.lines.size(); ++i)
-	{
-		object.lines.at(i).setFillColor(COLOR_OF_LINES);
-		if (i < object.lines.size() / 2)
-		{
-			object.lines.at(i).setSize(Vector2f(THICKNESS_OF_LATTICE, object.fieldSide));
-			object.lines.at(i).setPosition(object.fieldPosX + DISTANCE_BETWEEN_LINES * (i + 1), object.fieldPosY);
-		}
-		else
-		{
-			object.lines.at(i).setSize(Vector2f(object.fieldSide, THICKNESS_OF_LATTICE));
-			object.lines.at(i).setPosition(object.fieldPosX, object.fieldPosY + DISTANCE_BETWEEN_LINES * (j + 1));
-			++j;
-		}
-	}
-}
-
-void InitCell(Object &object, Cell &cage, const  size_t &i, const  size_t &j)
-{
-	cage.cellPosition.x = object.fieldPosX + j * DISTANCE_BETWEEN_LINES;
-	cage.cellPosition.y = object.fieldPosY + i * DISTANCE_BETWEEN_LINES;
-	cage.status = CELL_STATUS_EMPTY;
-}
 
 
-void InitField(Cell &cell, Object &object)
-{
-	object.field.resize(object.sideCellCount);
 
-	for (size_t i = 0; i < object.sideCellCount; ++i)
-	{
-		for (size_t j = 0; j < object.sideCellCount; ++j)
-		{
-			Cell cage;
-			InitCell(object, cage, i, j);
-			object.field.at(i).push_back(cage);
-		}
-	}
-}
 
-void CreateGameField(Object &object, RenderWindow &window, Cell &cell)
-{
-	Vector2u size = window.getSize();
-	object.fieldPosX = size.x / 2 - object.fieldSide / 2;
-	object.fieldPosY = size.y / 2 - object.fieldSide / 2;
 
-	InitField(cell, object);
 
-	CreateFieldBoarder(object, window);
-	CreateGameCells(object);
-}
 
-void DrawCircle(RenderWindow &window, Cell &cell)
+
+
+
+
+void DrawCircle(RenderWindow &window, GameCell &cell)
 {
 	for (size_t i = 0; i < cell.circles.size(); ++i)
 	{
@@ -214,7 +245,7 @@ void DrawCircle(RenderWindow &window, Cell &cell)
 	}
 }
 
-void DrawSquare(RenderWindow &window, Cell &cell)
+void DrawSquare(RenderWindow &window, GameCell &cell)
 {
 	for (size_t i = 0; i < cell.squears.size(); ++i)
 	{
@@ -222,52 +253,40 @@ void DrawSquare(RenderWindow &window, Cell &cell)
 	}	
 }
 
-void DrawField(RenderWindow &window, Object &object)
+void DrawField(RenderWindow &window, GameObject &object)
 {
-	window.draw(object.fieldBoarder);
+	window.draw(object.margin.fieldBoarder);
 }
 
-void DrawCells(RenderWindow &window, Object &object)
+void DrawCells(RenderWindow &window, GameObject &object)
 {
-	for (size_t i = 0; i < object.lines.size(); ++i)
+	for (size_t i = 0; i < object.line.lines.size(); ++i)
 	{
-		window.draw(object.lines.at(i));
+		window.draw(object.line.lines.at(i));
 	}
 }
 
-void DrawObjects(RenderWindow &window, Object &object, Cell &cell)
+void DrawObjects(RenderWindow &window, GameObject &object, GameCell &cell)
 {
 	DrawField(window, object);
 	DrawCells(window, object);
-	DrawSquare(window, cell);
 	DrawCircle(window, cell);
+	DrawSquare(window, cell);
 }
 
-int UserRequest(Cell &cell, Object &object)
+int RequestUser(GameCell &cell, GameObject &object)
 {
-	cout << "Р’РІРµРґРёС‚Рµ СЂР°Р·РјРµСЂ РїРѕР»СЏ РѕС‚ 5 РґРѕ 15 РІРєР»СЋС‡РёС‚РµР»СЊРЅРѕ\n";
-	cin >> object.sideCellCount;
-	if (object.sideCellCount < MIN_SIDE_CELL_COUNT || object.sideCellCount > MAX_SIDE_CELL_COUNT)
+	cout << "Выберите фигуру квадрат или нолик (2 - квадрат || 1 - нолик )\n";
+	cin >> object.shape;
+	if (object.shape < 1 || object.shape > 2)
 	{
-		cout << "РџР»РѕС…РёС€!\n";
+		cout << "Глупец!";
 		return EXIT_FAILURE;
 	}
-	cout << "Р’С‹Р±РµСЂРёС‚Рµ С„РёРіСѓСЂСѓ РєРІР°РґСЂР°С‚ РёР»Рё РЅРѕР»РёРє (1 - РєРІР°РґСЂР°С‚ || 0 - РЅРѕР»РёРє )\n";
-	cin >> object.shape;
 	return EXIT_SUCCESS;
 }
 
-
-
-void SetField(Object &object, Cell &cell, RenderWindow &window)
-{
-	object.fieldSide = object.sideCellCount * DISTANCE_BETWEEN_LINES;
-	object.linesCount = (object.sideCellCount - 1) * 2;
-	object.lines.resize(object.linesCount);
-	CreateGameField(object, window, cell);
-}
-
-void GameLoop(RenderWindow &window, Object &object, Cell &cell)
+void GameLoop(RenderWindow &window, GameObject &object, GameCell &cell)
 {
 	while (window.isOpen())
 	{
@@ -282,17 +301,17 @@ void GameLoop(RenderWindow &window, Object &object, Cell &cell)
 int main()
 {
 	setlocale(LC_ALL, "rus");
-	Object object;
-	Cell cell;
+	GameObject object;
+	GameCell cell;
 	ContextSettings settings;
 
-	if (UserRequest(cell, object) == EXIT_FAILURE)
+	if (RequestUser(cell, object) == EXIT_FAILURE)
 	{
 		return EXIT_FAILURE;
 	}
 	
 	InitSettings(settings);
-	RenderWindow window(VideoMode(WINDOW_WIDTH, WINDOW_HEIGHT), "Gomoku", Style::Fullscreen, settings);
+	RenderWindow window(VideoMode(WINDOW_WIDTH, WINDOW_HEIGHT), "Gomoku", Style::Default, settings);
 	SetField(object, cell, window);
 
 	GameLoop(window, object, cell);
