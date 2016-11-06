@@ -114,7 +114,7 @@ void CreateClockTexture(Sprite &clockBrandSprite, Texture &clockBrand, RenderWin
 	clockBrandSprite.setPosition(window.getSize().x / 2.0f, window.getSize().y - 100.0f);
 }
 
-void CreateScheme(TypeOfDots *dot, TypeOfDigits *digits, RenderWindow &window, float angle)
+void CreateScheme(TypeOfDots *dot, TypeOfDigits *digits, RenderWindow &window, float angle, float x, float y)
 {
 	for (int i = 0; i < 12; i++)
 	{
@@ -124,8 +124,8 @@ void CreateScheme(TypeOfDots *dot, TypeOfDigits *digits, RenderWindow &window, f
 	int j = 2;
 	for (int i = 0; i < 60; i++)
 	{
-		int x = (CLOCK_CIRCLE_RADIUS - 10) * cos(angle);
-		int y = (CLOCK_CIRCLE_RADIUS - 10) * sin(angle);
+		x = (CLOCK_CIRCLE_RADIUS - 10) * cos(angle);
+		y = (CLOCK_CIRCLE_RADIUS - 10) * sin(angle);
 
 		if (i % 5 == 0)
 		{
@@ -239,7 +239,7 @@ void InitClock(MyClock &watch, RenderWindow &window, Vector2f &windowCenter)
 	watch.clockCircle.setRadius(CLOCK_CIRCLE_RADIUS);
 	watch.centerCircle.setRadius(10);
 	SetDigitsOptions(watch.text, watch.font);
-	CreateScheme(watch.dot, watch.digits, window, watch.angle);
+	CreateScheme(watch.dot, watch.digits, window, watch.angle, watch.x, watch.y);
 	CreateClockScheme(window, watch.clockCircle, watch.centerCircle, windowCenter);
 	SetHandsConfiguration(watch.hourHand, watch.minuteHand, watch.secondsHand, windowCenter);
 	PlayClockSound(watch.clockTick);

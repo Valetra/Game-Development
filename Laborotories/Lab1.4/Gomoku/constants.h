@@ -1,3 +1,6 @@
+#ifndef GOMOKU_CONSTANTS_H
+#define GOMOKU_CONSTANTS_H
+
 #include "stdafx.h"
 
 static const unsigned WINDOW_WIDTH = 800;
@@ -73,3 +76,5 @@ struct GameObject
 	//Нулик
 	CircleShape circlePrototype;
 };
+
+#endif

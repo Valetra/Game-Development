@@ -1,4 +1,3 @@
-#include "constants.h"
 #include "init.h"
 
 void InitSettings(ContextSettings &settings)

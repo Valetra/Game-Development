@@ -154,11 +154,15 @@
     <ClCompile Include="constants.cpp" />
     <ClCompile Include="init.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="processEvent.cpp" />
+    <ClCompile Include="render.cpp" />
     <ClCompile Include="stdafx.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="constants.h" />
     <ClInclude Include="init.h" />
+    <ClInclude Include="processEvent.h" />
+    <ClInclude Include="render.h" />
     <ClInclude Include="stdafx.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
