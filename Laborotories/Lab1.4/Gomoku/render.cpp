@@ -23,9 +23,26 @@ void DrawField(RenderWindow &window, GameObject &object)
 
 void DrawCells(RenderWindow &window, GameObject &object)
 {
-	for (size_t i = 0; i < object.line.lines.size(); ++i)
+	for (size_t i = 0; i < object.fieldLines.lines.size(); ++i)
 	{
-		window.draw(object.line.lines.at(i));
+		window.draw(object.fieldLines.lines.at(i));
+	}
+}
+
+void DrawGameOverLine(RenderWindow &window, GameObject &object)
+{
+	window.draw(object.gameOverLine, 2, Lines);
+}
+
+void DrawText(RenderWindow &window, GameObject &object)
+{
+	if (!object.gameText.wasSelectedFigure)
+	{
+		window.draw(object.gameText.text);
+	}
+	if (object.gameText.IsGameOver)
+	{
+		window.draw(object.gameText.text);
 	}
 }
 
@@ -35,4 +52,6 @@ void DrawObjects(RenderWindow &window, GameObject &object, GameCell &cell)
 	DrawCells(window, object);
 	DrawCircle(window, cell);
 	DrawSquare(window, cell);
+	DrawGameOverLine(window, object);
+	DrawText(window, object);
 }

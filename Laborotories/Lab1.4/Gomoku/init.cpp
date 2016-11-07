@@ -1,5 +1,15 @@
 #include "init.h"
 
+void InitText(Text &text, Font &font)
+{
+	font.loadFromFile(FONT_PATH);
+	text.setFont(font);
+	text.setString(REQUEST_USER);
+	text.setCharacterSize(CHARACTER_SIZE);
+	text.setFillColor(COLOR_OF_TEXT);
+	text.setPosition(TEXT_POSITION);
+}
+
 void InitSettings(ContextSettings &settings)
 {
 	settings.antialiasingLevel = SMOOTHING_FACTOR;
@@ -7,8 +17,8 @@ void InitSettings(ContextSettings &settings)
 
 void InitCell(GameObject &object, GameCell &cage, const  size_t &i, const  size_t &j)
 {
-	cage.cellPosition.x = object.margin.fieldPosX + j * DISTANCE_BETWEEN_LINES;
-	cage.cellPosition.y = object.margin.fieldPosY + i * DISTANCE_BETWEEN_LINES;
+	cage.cellPosition.x = object.margin.fieldPos.x + j * DISTANCE_BETWEEN_LINES;
+	cage.cellPosition.y = object.margin.fieldPos.y + i * DISTANCE_BETWEEN_LINES;
 	cage.status = State::Empty;
 }
 
@@ -28,19 +38,18 @@ void InitField(GameCell &cell, GameObject &object)
 
 void CreateGameCells(GameObject &object)
 {
-	for (size_t i = 0, j = 0; i < object.line.lines.size(); ++i)
+	for (size_t i = 0, j = 0; i < object.fieldLines.lines.size(); ++i)
 	{
-		// TODO: move to reference variable `object.line.lines.at(i)`
-		object.line.lines.at(i).setFillColor(COLOR_OF_LINES);
-		if (i < object.line.lines.size() / 2)
+		object.fieldLines.lines.at(i).setFillColor(COLOR_OF_LINES);
+		if (i < object.fieldLines.lines.size() / 2)
 		{
-			object.line.lines.at(i).setSize(Vector2f(THICKNESS_OF_LATTICE, object.margin.fieldSide));
-			object.line.lines.at(i).setPosition(object.margin.fieldPosX + DISTANCE_BETWEEN_LINES * (i + 1), object.margin.fieldPosY);
+			object.fieldLines.lines.at(i).setSize(Vector2f(THICKNESS_OF_LATTICE, object.margin.fieldSide));
+			object.fieldLines.lines.at(i).setPosition(object.margin.fieldPos.x + DISTANCE_BETWEEN_LINES * (i + 1), object.margin.fieldPos.y);
 		}
 		else
 		{
-			object.line.lines.at(i).setSize(Vector2f(object.margin.fieldSide, THICKNESS_OF_LATTICE));
-			object.line.lines.at(i).setPosition(object.margin.fieldPosX, object.margin.fieldPosY + DISTANCE_BETWEEN_LINES * (j + 1));
+			object.fieldLines.lines.at(i).setSize(Vector2f(object.margin.fieldSide, THICKNESS_OF_LATTICE));
+			object.fieldLines.lines.at(i).setPosition(object.margin.fieldPos.x, object.margin.fieldPos.y + DISTANCE_BETWEEN_LINES * (j + 1));
 			++j;
 		}
 	}
@@ -50,7 +59,7 @@ void CreateFieldBoarder(GameObject &object, RenderWindow &window)
 {
 	object.margin.fieldBoarder.setSize(Vector2f(object.margin.fieldSide, object.margin.fieldSide));
 
-	Vector2f fieldPos(object.margin.fieldPosX, object.margin.fieldPosY);
+	Vector2f fieldPos(object.margin.fieldPos.x, object.margin.fieldPos.y);
 	object.margin.fieldBoarder.setPosition(fieldPos);
 
 	object.margin.fieldBoarder.setFillColor(COLOR_OF_FIELD);
@@ -61,8 +70,8 @@ void CreateFieldBoarder(GameObject &object, RenderWindow &window)
 void CreateGameField(GameObject &object, RenderWindow &window, GameCell &cell)
 {
 	Vector2u size = window.getSize();
-	object.margin.fieldPosX = size.x / 2 - object.margin.fieldSide / 2;
-	object.margin.fieldPosY = size.y / 2 - object.margin.fieldSide / 2;
+	object.margin.fieldPos.x = size.x / 2 - object.margin.fieldSide / 2;
+	object.margin.fieldPos.y = size.y / 2 - object.margin.fieldSide / 2;
 
 	InitField(cell, object);
 
@@ -74,7 +83,7 @@ void SetField(GameObject &object, GameCell &cell, RenderWindow &window)
 {
 	object.sideCellCount = SIDE_CELL_COUNT;
 	object.margin.fieldSide = object.sideCellCount * DISTANCE_BETWEEN_LINES;
-	object.line.linesCount = (object.sideCellCount - 1) * 2;
-	object.line.lines.resize(object.line.linesCount);
+	object.fieldLines.linesCount = (object.sideCellCount - 1) * 2;
+	object.fieldLines.lines.resize(object.fieldLines.linesCount);
 	CreateGameField(object, window, cell);
 }

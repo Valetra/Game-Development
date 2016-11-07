@@ -8,6 +8,9 @@ static const unsigned WINDOW_HEIGHT = 600;
 static const unsigned SMOOTHING_FACTOR = 8;
 
 static const int SIDE_CELL_COUNT = 15;
+static const int CHARACTER_SIZE = 45;
+
+static const Vector2f TEXT_POSITION(150, 100);
 
 static const float DISTANCE_BETWEEN_LINES = 40;
 static const float THICKNESS_OF_LATTICE = 2;
@@ -23,6 +26,11 @@ static const Color BACK_GROUND_COLOR(245, 245, 220);
 static const Color COLOR_OF_SQUARE(193, 135, 107);
 static const Color COLOR_OF_CIRCLE(190, 189, 127);
 static const Color COLOR_OF_GAMEOVER_LINE(255, 0, 0);
+static const Color COLOR_OF_TEXT(207, 67, 99);
+
+static const string REQUEST_USER = "Choose your shape!";
+static const string GAME_OVER_STRING = "Game over!";
+static const string FONT_PATH = "Coiny-Regular.ttf";
 
 enum State {
 	Empty = 0,
@@ -31,6 +39,14 @@ enum State {
 };
 
 typedef sf::Vector2f Point;
+
+struct GameText
+{
+	bool wasSelectedFigure = false;
+	bool IsGameOver = false;
+	Font font;
+	Text text;
+};
 
 struct GameCell
 {
@@ -51,10 +67,9 @@ struct Field
 	RectangleShape fieldBoarder;
 	float fieldSide;
 	vector<vector<GameCell>> field;
-	// TODO: use sf::Vector2f
-	float fieldPosX;
-	float fieldPosY;
+	Vector2f fieldPos;
 };
+
 
 struct Line
 {
@@ -64,17 +79,25 @@ struct Line
 
 struct GameObject
 {
-	unsigned shape;
+	unsigned firstPlayerShape;
+	unsigned secoundPlayerShape;
+	unsigned whichPlayer;
+
 	//Поле
 	Field margin;
 	//Линии
-	Line line;
+	Line fieldLines;
 	//Клетки
 	unsigned short int sideCellCount;
 	//Квадратик
 	RectangleShape squarePrototype;
 	//Нулик
 	CircleShape circlePrototype;
+	//Линия конца игры
+	vector<Point> pointsOfLine;
+	Vertex gameOverLine[2];
+
+	GameText gameText;
 };
 
 #endif
