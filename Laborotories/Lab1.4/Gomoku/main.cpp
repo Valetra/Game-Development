@@ -27,7 +27,7 @@ int main()
 	
 	InitSettings(settings);
 	InitText(object.gameText.text, object.gameText.font);
-	RenderWindow window(VideoMode(WINDOW_WIDTH, WINDOW_HEIGHT), "Gomoku", Style::Default, settings);
+	RenderWindow window(VideoMode(WINDOW_WIDTH, WINDOW_HEIGHT), "Gomoku", Style::Close, settings);
 	SetField(object, cell, window);
 
 	GameLoop(window, object, cell);
